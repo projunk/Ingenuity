@@ -78,6 +78,21 @@ void loop2() {
     }
   } 
 
+  bool actualIsArmed = isArmed();
+  if (actualIsArmed && !previousIsArmed) {
+    if (isArmingAllowed()) {
+      initValues();
+      playArmed();
+    } else {
+      actualIsArmed = false;
+    }    
+  } else if (!actualIsArmed && previousIsArmed) {
+    initValues();
+    playDisarmed();
+  }
+  previousIsArmed = actualIsArmed;
+
+
   flightMode = getFlightMode();
 
   int rollChannel = fixChannelDirection(getExpo(channel[0], rollExpoFactor), rollChannelReversed);
@@ -98,9 +113,9 @@ void loop2() {
 
   calcLevelAdjust(flightMode);
 
-  double pid_roll_setpoint = calcPidSetPoint(rollChannel, roll_level_adjust);
-  double pid_pitch_setpoint = calcPidSetPoint(pitchChannel, pitch_level_adjust);
-  double pid_yaw_setpoint = 0.0;
+  pid_roll_setpoint = calcPidSetPoint(rollChannel, roll_level_adjust);
+  pid_pitch_setpoint = calcPidSetPoint(pitchChannel, pitch_level_adjust);
+  pid_yaw_setpoint = 0.0;
   if (throttleChannel > 1050) pid_yaw_setpoint = calcPidSetPoint(yawChannel, 0.0);
 
   rollOutputPID.calc(gyro_roll_input, pid_roll_setpoint);
@@ -112,41 +127,25 @@ void loop2() {
   bottomEsc = limitEsc(throttleChannel + yawOutputPID.getOutput());
   topServo = limitServo(MID_CHANNEL - rollOutputPID.getOutput() + topServoCenterOffset);
   bottomServo = limitServo(MID_CHANNEL + pitchOutputPID.getOutput() + bottomServoCenterOffset);
-  // printMotorOutputs(topEsc, bottomEsc, topServo, bottomServo);
-
-  bool actualIsArmed = isArmed();
-  if (actualIsArmed && !previousIsArmed) {
-    if (isArmingAllowed()) {
-      initValues();
-      playArmed();
-    } else {
-      actualIsArmed = false;
-    }    
-  } else if (!actualIsArmed && previousIsArmed) {
-    initValues();
-    playDisarmed();
-  }
-  previousIsArmed = actualIsArmed;
 
   if (signal_detected && actualIsArmed) {
     if (switchB.readPos() == 2) {
-      writeEscPWM(MOTOR_TOP_PWM_CHANNEL, MIN_PULSE);
-    } else {
-      writeEscPWM(MOTOR_TOP_PWM_CHANNEL, topEsc);
+      topEsc = MIN_PULSE; 
     }
     if (switchD.readPos() == 2) {
-      writeEscPWM(MOTOR_BOTTOM_PWM_CHANNEL, MIN_PULSE);
-    } else {
-      writeEscPWM(MOTOR_BOTTOM_PWM_CHANNEL, bottomEsc);
+      bottomEsc = MIN_PULSE;
     }
-    writeServoPWM(SERVO_TOP_PWM_CHANNEL, topServo);
-    writeServoPWM(SERVO_BOTTOM_PWM_CHANNEL, bottomServo);    
   } else {
-    writeEscPWM(MOTOR_TOP_PWM_CHANNEL, MIN_PULSE);
-    writeEscPWM(MOTOR_BOTTOM_PWM_CHANNEL, MIN_PULSE);    
-    writeServoPWM(SERVO_TOP_PWM_CHANNEL, MID_CHANNEL + topServoCenterOffset);
-    writeServoPWM(SERVO_BOTTOM_PWM_CHANNEL, MID_CHANNEL + bottomServoCenterOffset);
+    topEsc = MIN_PULSE;
+    bottomEsc = MIN_PULSE;
+    topServo = MID_CHANNEL + topServoCenterOffset;
+    bottomServo = MID_CHANNEL + bottomServoCenterOffset;
   }
+
+  writeServoPWM(SERVO_TOP_PWM_CHANNEL, topServo);
+  writeServoPWM(SERVO_BOTTOM_PWM_CHANNEL, bottomServo);    
+  writeEscPWM(MOTOR_TOP_PWM_CHANNEL, topEsc);
+  writeEscPWM(MOTOR_BOTTOM_PWM_CHANNEL, bottomEsc);
 
   // check battery voltage once per second
   if ((millisTimer - batteryVoltageTimer) > 1000) {

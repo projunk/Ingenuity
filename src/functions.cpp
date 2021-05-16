@@ -50,9 +50,9 @@ TwoPosSwitch switchD(7);
 
 FlightMode flightMode;
 
-PID rollPID(0.6, 0.0, 0.0, 400.0, "roll");
-PID pitchPID(2.0, 0.0, 0.0, 400.0, "pitch");
-PID yawPID(0.5, 0.0, 0.0, 400.0, "yaw");
+PID rollPID(1.0, 0.0, 0.0, 400.0, "roll");
+PID pitchPID(1.0, 0.0, 0.0, 400.0, "pitch");
+PID yawPID(1.0, 0.0, 0.0, 400.0, "yaw");
 
 PIDOutput rollOutputPID(&rollPID);
 PIDOutput pitchOutputPID(&pitchPID);
